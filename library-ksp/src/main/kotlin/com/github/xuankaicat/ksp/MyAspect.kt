@@ -3,16 +3,10 @@ package com.github.xuankaicat.ksp
 import com.github.xuankaicat.annotation.MyAspect
 import com.github.xuankaicat.annotation.Processor
 import com.google.auto.service.AutoService
-import com.google.devtools.ksp.containingFile
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.jvm.jvmOverloads
-import kotlin.reflect.KClass
-import kotlin.streams.asStream
-
-const val PROCESSOR_PATH = "com.github.xuankaicat.processor"
 
 @AutoService(SymbolProcessorProvider::class)
 class MyAspectProcessorProvider : SymbolProcessorProvider {
@@ -120,20 +114,21 @@ class MyAspectProcessor(
                 processor != null
             }.forEach { annotation ->
                 // found MyAspect annotation
+                val declaration = (processor!!.arguments.first().value as KSType).declaration
+
                 val funSpec = FunSpec.builder(function.simpleName.asString()).apply {
                     addModifiers(KModifier.OVERRIDE)
                     function.parameters.forEach {
                         addParameter(it.name!!.asString(), ClassName(packageName, it.type.toString()))
                     }
                     addStatement(
-                        annotation.shortName.asString() +
-                            "Processor(instance::" +
+                        declaration.simpleName.asString() +
+                            "(instance::" +
                             function.simpleName.asString() +
                             ", ${function.parameters.joinToString(",") { it.name!!.asString() }}" +
                             ")()"
                     )
                 }.build()
-                val declaration = (processor!!.arguments.first().value as KSType).declaration
                 //throw Exception(declaration.packageName.asString())
                 fileSpecBuilder.addImport(declaration.packageName.asString(), declaration.simpleName.asString())
                 typeSpecBuilder.addFunction(funSpec)
